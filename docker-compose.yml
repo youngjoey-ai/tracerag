@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: tracerag-postgres
+    environment:
+      POSTGRES_USER: tracerag
+      POSTGRES_PASSWORD: tracerag
+      POSTGRES_DB: tracerag
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: tracerag-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

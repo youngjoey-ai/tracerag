@@ -1,0 +1,131 @@
+[
+  {
+    "question": "为什么要先独立验证 retrieval",
+    "answer": "因为如果 retrieval 本身没找对上下文，后续再强的大模型也只能基于错误材料生成看似流畅但不可靠的答案；单独验证 retrieval 能显著降低排错难度，符合分层验证的工程实践，并确保底层检索链路稳定，为后续的引用、可信度和可解释性奠定基础。",
+    "sources": [
+      {
+        "document_id": 4,
+        "chunk_index": 1,
+        "content": "。切块完成后，每个 chunk 会单独生成 embedding，并写入向量数据库或者带 pgvector 的 PostgreSQL 表中。等用户输入 query 时，系统会先把 query 也转成 embedding，再和数据库中所有 chunk 的向量做相似度比较，返回 top-k 最相关的结果。这里要特别注意，检索阶段和生成阶段最好分开验证。因为如果 retrieval 本身没找对上下文，就算后面接了再强的大模型，也只能基于错误材料生成一个看起来流畅但实际上不可靠的答案。正因为如此，很多项目都会把 retrieval 单独做成一个可以测试的接口，先人工检查 top-k 结果是否合理，再进入 answer generation。这个顺序可以显著降低排错难度，也更符合真实工程里的分层验证思路。对于当前这个 TraceRAG 项目来说，先完成 documents、chunks、embeddings、retrieval 四层闭环，比过早追求复杂 prompt 或多轮对话能力更重要。只有当底层检索链路稳定后，后面的 sources 引用、答案可信度和系统可解释性才有意义。",
+        "metadata_json": {
+          "document_title": "RAG 检索链路测试长文",
+          "source": "day7-long-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.44854944944381325
+      },
+      {
+        "document_id": 3,
+        "chunk_index": 0,
+        "content": "RAG 系统的第一步通常不是直接把整篇文档拿去做检索，而是先把文档拆成多个更小的文本块。这样做的原因是，检索时如果粒度太大，返回结果往往不够精确；如果粒度太小，又可能丢失上下文。因此需要在 chunk size 和 overlap 之间找到平衡。RecursiveCharacterTextSplitter 是 LangChain 里常用的切块工具，它会优先按照更自然的边界切分文本，例如段落、换行、句子，再逐层回退到更小单位。这样做通常比机械固定长度更适合真实文档。今天这一步的目标不是把 chunking 策略做到最优，而是先把最小可用切块链路跑通，让 chunks 表里真正有数据，为 Day 6 的 embedding 和 Day 7 的 retrieval 做准备。",
+        "metadata_json": {
+          "document_title": "RAG 切块实验",
+          "source": "day5-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.4902835172921739
+      },
+      {
+        "document_id": 4,
+        "chunk_index": 0,
+        "content": "RAG 系统在工程实现里，通常不会直接把整篇文档拿去做向量检索，而是会先把文档切成多个较小的文本块。这样做的核心原因，是检索粒度会直接影响召回质量。如果粒度过大，一个 chunk 里混入了太多主题，向量表示会被稀释，用户问题只能命中一个非常笼统的大段文本，后续回答很难精确定位依据。如果粒度过小，虽然局部匹配可能更尖锐，但上下文又容易被切断，导致单个 chunk 无法独立表达完整意思。因此，chunk size 和 chunk overlap 的选择，本质上是在精度和上下文完整性之间找平衡。实际工程里，常见做法是先选一个可工作的默认参数，把导入、切块、向量化、检索整条链路打通，再逐步做参数实验，而不是一开始就试图找到理论最优值。对于中文文档，还要考虑分隔符策略，因为默认切分器更偏向通用文本边界，如果不补充中文标点，切出来的块可能不够自然。切块完成后，每个 chunk 会单独生成 embedding，并写入向量数据库或者带 pgvector 的 PostgreSQL 表中",
+        "metadata_json": {
+          "document_title": "RAG 检索链路测试长文",
+          "source": "day7-long-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.5123966045616024
+      }
+    ],
+    "duration_ms": 2354
+  },
+  {
+    "question": "chunk_size 和 chunk_overlap 分别控制什么",
+    "answer": "- `chunk_size` 控制每个文本块的最大长度（通常以字符数或 token 数为单位），决定切分后每个 chunk 的主体大小；  \n- `chunk_overlap` 控制相邻两个 chunk 之间的重叠部分长度，用于缓解上下文被截断的问题，保留语义连贯性。  \n\n二者共同影响检索的**精度**（小 chunk 更精细但易断上下文）与**上下文完整性**（大 chunk 或高 overlap 更保语境但可能降低匹配准确性）。",
+    "sources": [
+      {
+        "document_id": 3,
+        "chunk_index": 0,
+        "content": "RAG 系统的第一步通常不是直接把整篇文档拿去做检索，而是先把文档拆成多个更小的文本块。这样做的原因是，检索时如果粒度太大，返回结果往往不够精确；如果粒度太小，又可能丢失上下文。因此需要在 chunk size 和 overlap 之间找到平衡。RecursiveCharacterTextSplitter 是 LangChain 里常用的切块工具，它会优先按照更自然的边界切分文本，例如段落、换行、句子，再逐层回退到更小单位。这样做通常比机械固定长度更适合真实文档。今天这一步的目标不是把 chunking 策略做到最优，而是先把最小可用切块链路跑通，让 chunks 表里真正有数据，为 Day 6 的 embedding 和 Day 7 的 retrieval 做准备。",
+        "metadata_json": {
+          "document_title": "RAG 切块实验",
+          "source": "day5-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.28828703148911217
+      },
+      {
+        "document_id": 4,
+        "chunk_index": 0,
+        "content": "RAG 系统在工程实现里，通常不会直接把整篇文档拿去做向量检索，而是会先把文档切成多个较小的文本块。这样做的核心原因，是检索粒度会直接影响召回质量。如果粒度过大，一个 chunk 里混入了太多主题，向量表示会被稀释，用户问题只能命中一个非常笼统的大段文本，后续回答很难精确定位依据。如果粒度过小，虽然局部匹配可能更尖锐，但上下文又容易被切断，导致单个 chunk 无法独立表达完整意思。因此，chunk size 和 chunk overlap 的选择，本质上是在精度和上下文完整性之间找平衡。实际工程里，常见做法是先选一个可工作的默认参数，把导入、切块、向量化、检索整条链路打通，再逐步做参数实验，而不是一开始就试图找到理论最优值。对于中文文档，还要考虑分隔符策略，因为默认切分器更偏向通用文本边界，如果不补充中文标点，切出来的块可能不够自然。切块完成后，每个 chunk 会单独生成 embedding，并写入向量数据库或者带 pgvector 的 PostgreSQL 表中",
+        "metadata_json": {
+          "document_title": "RAG 检索链路测试长文",
+          "source": "day7-long-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.32782169100964675
+      },
+      {
+        "document_id": 4,
+        "chunk_index": 1,
+        "content": "。切块完成后，每个 chunk 会单独生成 embedding，并写入向量数据库或者带 pgvector 的 PostgreSQL 表中。等用户输入 query 时，系统会先把 query 也转成 embedding，再和数据库中所有 chunk 的向量做相似度比较，返回 top-k 最相关的结果。这里要特别注意，检索阶段和生成阶段最好分开验证。因为如果 retrieval 本身没找对上下文，就算后面接了再强的大模型，也只能基于错误材料生成一个看起来流畅但实际上不可靠的答案。正因为如此，很多项目都会把 retrieval 单独做成一个可以测试的接口，先人工检查 top-k 结果是否合理，再进入 answer generation。这个顺序可以显著降低排错难度，也更符合真实工程里的分层验证思路。对于当前这个 TraceRAG 项目来说，先完成 documents、chunks、embeddings、retrieval 四层闭环，比过早追求复杂 prompt 或多轮对话能力更重要。只有当底层检索链路稳定后，后面的 sources 引用、答案可信度和系统可解释性才有意义。",
+        "metadata_json": {
+          "document_title": "RAG 检索链路测试长文",
+          "source": "day7-long-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.47523273306184455
+      }
+    ],
+    "duration_ms": 4314
+  },
+  {
+    "question": "为什么 embedding 的输入单位是 chunk，不是 document",
+    "answer": "因为 embedding 的输入单位是 chunk 而不是 document，是为了**控制检索粒度，兼顾召回精度与上下文完整性**：  \n- 若以整篇 document 为单位生成 embedding，向量表示会过于笼统，混杂多个主题，导致语义稀释，降低匹配精度；  \n- 若以更小的 chunk 为单位，则每个 embedding 能更聚焦于局部语义，提升检索相关性；  \n- 同时，合理设置 chunk size 和 overlap 可在保留必要上下文的前提下，避免信息割裂。  \n\n因此，RAG 系统对每个 chunk 单独编码（即生成 embedding），再在向量库中进行细粒度相似度检索。",
+    "sources": [
+      {
+        "document_id": 3,
+        "chunk_index": 0,
+        "content": "RAG 系统的第一步通常不是直接把整篇文档拿去做检索，而是先把文档拆成多个更小的文本块。这样做的原因是，检索时如果粒度太大，返回结果往往不够精确；如果粒度太小，又可能丢失上下文。因此需要在 chunk size 和 overlap 之间找到平衡。RecursiveCharacterTextSplitter 是 LangChain 里常用的切块工具，它会优先按照更自然的边界切分文本，例如段落、换行、句子，再逐层回退到更小单位。这样做通常比机械固定长度更适合真实文档。今天这一步的目标不是把 chunking 策略做到最优，而是先把最小可用切块链路跑通，让 chunks 表里真正有数据，为 Day 6 的 embedding 和 Day 7 的 retrieval 做准备。",
+        "metadata_json": {
+          "document_title": "RAG 切块实验",
+          "source": "day5-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.30783501956879833
+      },
+      {
+        "document_id": 4,
+        "chunk_index": 0,
+        "content": "RAG 系统在工程实现里，通常不会直接把整篇文档拿去做向量检索，而是会先把文档切成多个较小的文本块。这样做的核心原因，是检索粒度会直接影响召回质量。如果粒度过大，一个 chunk 里混入了太多主题，向量表示会被稀释，用户问题只能命中一个非常笼统的大段文本，后续回答很难精确定位依据。如果粒度过小，虽然局部匹配可能更尖锐，但上下文又容易被切断，导致单个 chunk 无法独立表达完整意思。因此，chunk size 和 chunk overlap 的选择，本质上是在精度和上下文完整性之间找平衡。实际工程里，常见做法是先选一个可工作的默认参数，把导入、切块、向量化、检索整条链路打通，再逐步做参数实验，而不是一开始就试图找到理论最优值。对于中文文档，还要考虑分隔符策略，因为默认切分器更偏向通用文本边界，如果不补充中文标点，切出来的块可能不够自然。切块完成后，每个 chunk 会单独生成 embedding，并写入向量数据库或者带 pgvector 的 PostgreSQL 表中",
+        "metadata_json": {
+          "document_title": "RAG 检索链路测试长文",
+          "source": "day7-long-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.3222959041595459
+      },
+      {
+        "document_id": 4,
+        "chunk_index": 1,
+        "content": "。切块完成后，每个 chunk 会单独生成 embedding，并写入向量数据库或者带 pgvector 的 PostgreSQL 表中。等用户输入 query 时，系统会先把 query 也转成 embedding，再和数据库中所有 chunk 的向量做相似度比较，返回 top-k 最相关的结果。这里要特别注意，检索阶段和生成阶段最好分开验证。因为如果 retrieval 本身没找对上下文，就算后面接了再强的大模型，也只能基于错误材料生成一个看起来流畅但实际上不可靠的答案。正因为如此，很多项目都会把 retrieval 单独做成一个可以测试的接口，先人工检查 top-k 结果是否合理，再进入 answer generation。这个顺序可以显著降低排错难度，也更符合真实工程里的分层验证思路。对于当前这个 TraceRAG 项目来说，先完成 documents、chunks、embeddings、retrieval 四层闭环，比过早追求复杂 prompt 或多轮对话能力更重要。只有当底层检索链路稳定后，后面的 sources 引用、答案可信度和系统可解释性才有意义。",
+        "metadata_json": {
+          "document_title": "RAG 检索链路测试长文",
+          "source": "day7-long-demo",
+          "chunk_size": 500,
+          "chunk_overlap": 100
+        },
+        "distance": 0.3837463030966328
+      }
+    ],
+    "duration_ms": 4699
+  }
+]

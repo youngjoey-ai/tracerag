@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local environment and editor files
+.env
+.DS_Store
+.cursor/

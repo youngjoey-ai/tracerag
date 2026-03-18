@@ -1,0 +1,11 @@
+[
+    {
+        "question": "为什么要先独立验证 retrieval"
+    },
+    {
+        "question": "chunk_size 和 chunk_overlap 分别控制什么"
+    },
+    {
+        "question": "为什么 embedding 的输入单位是 chunk，不是 document"
+    }
+]
