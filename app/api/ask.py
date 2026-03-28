@@ -6,8 +6,7 @@ from sqlalchemy.orm import Session
 from langfuse import observe
 
 from app.db.session import get_db
-from app.services.retrieval import similarity_search
-from app.services.llm import build_prompt, generate_answer
+from app.services.graph import build_ask_graph
 
 router = APIRouter()
 
@@ -28,22 +27,11 @@ def ask(
         cached["is_cached"] = True
         return cached
 
-    results = similarity_search(query=q, db=db, top_k=top_k)
+    graph = build_ask_graph(db)
+    state = graph.invoke({"query": q, "top_k": top_k, "results": [], "answer": ""})
 
-    if not results:
-        duration_ms = int((time.perf_counter() - start_time) * 1000)
-        return {
-            "query": q,
-            "answer": "根据当前检索到的资料，无法确定答案。",
-            "sources": [],
-            "duration_ms": duration_ms,
-        }
-    
-    prompt = build_prompt(query=q, results=results)
-    try:
-        answer = generate_answer(prompt)
-    except Exception:
-        answer = "抱歉，当前生成答案时出现异常，请稍后重试。"
+    results = state["results"]
+    answer = state["answer"]
 
     duration_ms = int((time.perf_counter() - start_time) * 1000)
 
