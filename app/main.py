@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from dotenv import load_dotenv
+load_dotenv()
 
+from fastapi import FastAPI
 from app.api.document import router as document_router
 from app.api.embedding import router as embedding_router
 from app.api.retrieval import router as retrieval_router

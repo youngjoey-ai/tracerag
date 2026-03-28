@@ -1,9 +1,10 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-
+from langfuse import observe
 from app.services.embedding import embed_texts
 
 
+@observe(name="retrieval")
 def similarity_search(
     query: str,
     db: Session,

@@ -1,6 +1,10 @@
 import os
 from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
+from langfuse import Langfuse, observe
+
+langfuse = Langfuse()
+system_prompt = langfuse.get_prompt("rag-system-prompt").get_langchain_prompt()[0][1]
 
 client = OpenAI(
     api_key=os.getenv("DASHSCOPE_API_KEY"),
@@ -34,6 +38,7 @@ content: {item["content"]}
 {context_text}
 """
 
+@observe(name="generation")
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=8),
@@ -43,8 +48,8 @@ def generate_answer(prompt: str) -> str:
         model="qwen-plus",
         messages=[
             {
-                "role": "system",
-                "content": "你是一个基于检索上下文回答问题的助手。请严格依据提供的上下文回答；如果上下文不足，就明确说信息不足，不要编造。"
+                "role": "system", 
+                "content": system_prompt,
             },
             {
                 "role": "user",
