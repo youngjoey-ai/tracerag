@@ -2,7 +2,8 @@ from typing import TypedDict
 
 from sqlalchemy.orm import Session
 from app.services.retrieval import similarity_search
-from app.services.llm import build_prompt, generate_answer
+from app.prompts.rag_prompt import build_prompt
+from app.services.llm import generate_answer
 
 from langgraph.graph import StateGraph, END
 

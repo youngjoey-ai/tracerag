@@ -1,41 +1,11 @@
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.services.retrieval import similarity_search
+from app.repositories.chunk_repository import find_bm25_chunks
 
 
 def bm25_search(query: str, db: Session, top_k: int = 5) -> list[dict]:
-    sql = text("""
-        SELECT
-            id,
-            document_id,
-            chunk_index,
-            content,
-            metadata_json,
-            ts_rank(
-                to_tsvector('simple', content),
-                plainto_tsquery('simple', :query)
-            ) AS score
-        FROM chunks
-        WHERE to_tsvector('simple', content) @@ plainto_tsquery('simple', :query)
-        ORDER BY score DESC
-        LIMIT :top_k
-    """)
-
-    result = db.execute(sql, {"query": query, "top_k": top_k})
-    rows = result.mappings().all()
-
-    return [
-        {
-            "id": row["id"],
-            "document_id": row["document_id"],
-            "chunk_index": row["chunk_index"],
-            "content": row["content"],
-            "metadata_json": row["metadata_json"],
-            "score": float(row["score"]),
-        }
-        for row in rows
-    ]
+    return find_bm25_chunks(db=db, query=query, top_k=top_k)
 
 
 def rrf_fuse(vector_results: list[dict], bm25_results: list[dict], k: int = 60) -> list[dict]:
