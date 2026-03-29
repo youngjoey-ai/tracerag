@@ -8,46 +8,35 @@ def find_similar_chunks(
     top_k: int,
     source: str | None = None,
 ) -> list[dict]:
-    if source is None:
-        sql = text("""
-            SELECT
-                id,
-                document_id,
-                chunk_index,
-                content,
-                metadata_json,
-                embedding <=> CAST(:query_embedding AS vector) AS distance
-            FROM chunks
-            WHERE embedding IS NOT NULL
-            ORDER BY embedding <=> CAST(:query_embedding AS vector)
-            LIMIT :top_k
-        """)
-        result = db.execute(sql, {
-            "query_embedding": str(query_embedding),
-            "top_k": top_k,
-        })
-    else:
-        sql = text("""
-            SELECT
-                id,
-                document_id,
-                chunk_index,
-                content,
-                metadata_json,
-                embedding <=> CAST(:query_embedding AS vector) AS distance
-            FROM chunks
-            WHERE embedding IS NOT NULL
-              AND metadata_json->>'source' = :source
-            ORDER BY embedding <=> CAST(:query_embedding AS vector)
-            LIMIT :top_k
-        """)
-        result = db.execute(sql, {
-            "query_embedding": str(query_embedding),
-            "top_k": top_k,
-            "source": source,
-        })
+    where_clauses = ["embedding IS NOT NULL"]
+    params = {
+        "query_embedding": str(query_embedding),
+        "top_k": top_k,
+    }
 
+    if source is not None:
+        where_clauses.append("metadata_json->>'source' = :source")
+        params["source"] = source
+
+    where_str = " AND ".join(where_clauses)
+
+    sql_query = f"""
+        SELECT
+            id,
+            document_id,
+            chunk_index,
+            content,
+            metadata_json,
+            embedding <=> CAST(:query_embedding AS vector) AS distance
+        FROM chunks
+        WHERE {where_str}
+        ORDER BY embedding <=> CAST(:query_embedding AS vector)
+        LIMIT :top_k
+    """
+    
+    result = db.execute(text(sql_query), params)
     rows = result.mappings().all()
+
     return [
         {
             "id": row["id"],

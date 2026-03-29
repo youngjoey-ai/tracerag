@@ -19,11 +19,16 @@ def retrieve_node(state: AskState, db: Session) -> AskState:
     results = similarity_search(query=state["query"], db=db, top_k=state["top_k"])
     return {"results": results}
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def generate_node(state: AskState) -> AskState:
     prompt = build_prompt(query=state["query"], results=state["results"])
     try:
         answer = generate_answer(prompt)
-    except Exception:
+    except Exception as e:
+        logger.exception("Error during LLM answer generation.")
         answer = "抱歉，当前生成答案时出现异常，请稍后重试。"
     return {"answer": answer}
 

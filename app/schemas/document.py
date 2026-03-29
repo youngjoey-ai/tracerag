@@ -11,5 +11,4 @@ class DocumentImportResponse(BaseModel):
     id: int
     title: str
     source: str | None = None
-    content_length: int
-    message: str
+    metadata: dict
