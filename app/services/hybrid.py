@@ -1,5 +1,5 @@
+import re
 from sqlalchemy.orm import Session
-
 from app.services.retrieval import similarity_search
 from app.repositories.chunk_repository import find_bm25_chunks
 
@@ -34,11 +34,13 @@ def rrf_fuse(vector_results: list[dict], bm25_results: list[dict], k: int = 60) 
 
 
 def simple_rerank(query: str, results: list[dict]) -> list[dict]:
-    query_terms = [term.strip().lower() for term in query.split() if term.strip()]
+    # Extract English words and individual Chinese characters as tokens
+    query_terms = set(re.findall(r'[a-z0-9]+|[\u4e00-\u9fa5]', query.lower()))
 
     def keyword_overlap_score(item: dict) -> int:
         content = item["content"].lower()
-        return sum(1 for term in query_terms if term in content)
+        content_terms = set(re.findall(r'[a-z0-9]+|[\u4e00-\u9fa5]', content))
+        return len(query_terms.intersection(content_terms))
 
     reranked = []
     for item in results:
