@@ -7,11 +7,12 @@ from langfuse import observe
 
 from app.db.session import get_db
 from app.services.graph import build_ask_graph
+from app.core.auth import verify_api_key
 
 router = APIRouter()
 
 
-@router.get("/ask")
+@router.get("/ask", dependencies=[Depends(verify_api_key)])
 @observe(name="ask")
 def ask(
     q: str = Query(..., description="user question"),
