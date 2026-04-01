@@ -1,12 +1,15 @@
 from typing import TypedDict
 
 from sqlalchemy.orm import Session
-from app.services.retrieval import similarity_search
+from app.services.hybrid import hybrid_search
 from app.prompts.rag_prompt import build_prompt
 from app.services.llm import generate_answer
 
 from langgraph.graph import StateGraph, END
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AskState(TypedDict):
     query: str
@@ -16,12 +19,8 @@ class AskState(TypedDict):
 
 
 def retrieve_node(state: AskState, db: Session) -> AskState:
-    results = similarity_search(query=state["query"], db=db, top_k=state["top_k"])
+    results = hybrid_search(query=state["query"], db=db, top_k=state["top_k"])
     return {"results": results}
-
-import logging
-
-logger = logging.getLogger(__name__)
 
 def generate_node(state: AskState) -> AskState:
     prompt = build_prompt(query=state["query"], results=state["results"])
