@@ -30,7 +30,13 @@ def ask(
         result["is_cached"] = True
     else:
         graph = build_ask_graph(db)
-        state = graph.invoke({"query": q, "top_k": top_k, "results": [], "answer": ""})
+        state = graph.invoke({
+            "query": q,
+            "top_k": top_k,
+            "results": [],
+            "answer": "",
+            "rewritten": False
+        })
 
         sources = [
             {

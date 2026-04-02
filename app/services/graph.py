@@ -1,12 +1,9 @@
 from typing import TypedDict
-
 from sqlalchemy.orm import Session
 from app.services.hybrid import hybrid_search
 from app.prompts.rag_prompt import build_prompt
-from app.services.llm import generate_answer
-
+from app.services.llm import generate_answer, rewrite_query
 from langgraph.graph import StateGraph, END
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +13,7 @@ class AskState(TypedDict):
     top_k: int
     results: list
     answer: str
-
+    rewritten: bool
 
 def retrieve_node(state: AskState, db: Session) -> AskState:
     results = hybrid_search(query=state["query"], db=db, top_k=state["top_k"])
@@ -26,30 +23,54 @@ def generate_node(state: AskState) -> AskState:
     prompt = build_prompt(query=state["query"], results=state["results"])
     try:
         answer = generate_answer(prompt)
-    except Exception as e:
+    except Exception:
         logger.exception("Error during LLM answer generation.")
         answer = "抱歉，当前生成答案时出现异常，请稍后重试。"
     return {"answer": answer}
 
+def rewrite_node(state: AskState) -> AskState:
+    query = state["query"]
+    try:
+        rewritten_query = rewrite_query(query)
+    except Exception:
+        logger.exception("Error during query rewrite.")
+        rewritten_query = query
+    return {"query": rewritten_query, "rewritten": True}
+
 def fallback_node(state: AskState) -> AskState:
-    return {"answer": "根据当前检索到的资料，无法确定答案。"}
+    query = state["query"]
+    try:
+        answer = generate_answer(
+            f"注意：在知识库中没有检索到与以下问题相关的资料。\n"
+            f"请根据你的通用知识尝试回答，但如果不确定，请明确说明。\n\n"
+            f"问题：{query}"
+        )
+    except Exception:
+        logger.exception("Error during LLM answer generation.")
+        answer = "抱歉，当前生成答案时出现异常，请稍后重试。"
+    return {"answer": answer}
 
 def route_after_retrieve(state: AskState) -> str:
     if state["results"]:
         return "generate"
-    return "fallback"
+    elif not state["rewritten"]:
+        return "rewrite"
+    else:
+        return "fallback"
 
 def build_ask_graph(db: Session):
     graph = StateGraph(AskState)
-    
+
     graph.add_node("retrieve", lambda state: retrieve_node(state, db))
     graph.add_node("generate", generate_node)
+    graph.add_node("rewrite", rewrite_node)
     graph.add_node("fallback", fallback_node)
 
     graph.set_entry_point("retrieve")
     graph.add_conditional_edges("retrieve", route_after_retrieve)
-    
+
+    graph.add_edge("rewrite", "retrieve")
     graph.add_edge("generate", END)
     graph.add_edge("fallback", END)
-    
+
     return graph.compile()

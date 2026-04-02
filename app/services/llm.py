@@ -42,3 +42,26 @@ def generate_answer(prompt: str) -> str:
     )
 
     return response.choices[0].message.content
+
+@observe(name="query_rewrite")
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+)
+def rewrite_query(query: str) -> str:
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "你是一个专业的查询改写助手。你的任务是将用户的问题改写成更适合检索的关键词形式。要求：1. 提取核心概念和关键词 2. 去除无关的修饰词 3. 保持原意 4. 只输出改写后的关键词，不要任何解释",
+            },
+            {
+                "role": "user",
+                "content": f"请将以下问题改写成适合检索的关键词：\n\n{query}",
+            },
+        ],
+        temperature=0.3,
+    )
+
+    return response.choices[0].message.content
