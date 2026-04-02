@@ -34,7 +34,7 @@ def rrf_fuse(vector_results: list[dict], bm25_results: list[dict], k: int = 60) 
 
 
 def simple_rerank(query: str, results: list[dict]) -> list[dict]:
-    # Extract English words and individual Chinese characters as tokens
+    # 提取英文单词和单个中文字符作为词元
     query_terms = set(re.findall(r'[a-z0-9]+|[\u4e00-\u9fa5]', query.lower()))
 
     def keyword_overlap_score(item: dict) -> int:

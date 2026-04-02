@@ -7,26 +7,25 @@ from sqlalchemy import pool
 
 from alembic import context
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# 这是 Alembic 配置对象，提供对 .ini 文件中值的访问
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# 解析配置文件以进行 Python 日志记录
+# 这行代码基本上设置了日志记录器
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
+# 在此处添加模型的 MetaData 对象
+# 以支持 'autogenerate' 功能
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from app.db.base import Base
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
+# 配置中定义的其他值，根据 env.py 的需求，
+# 可以通过以下方式获取：
 # my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+# ... 等等
 
 
 def run_migrations_offline() -> None:

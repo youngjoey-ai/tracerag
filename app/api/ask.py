@@ -58,7 +58,7 @@ def ask(
 
     result["duration_ms"] = int((time.perf_counter() - start_time) * 1000)
     
-    # Save the interaction to PostgreSQL seamlessly in the background!
+    # 在后台无缝保存交互记录到 PostgreSQL
     background_tasks.add_task(save_qa_log, db, result["query"], result["answer"], result["duration_ms"])
     
     return result
