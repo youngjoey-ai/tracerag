@@ -1,4 +1,4 @@
-"""add chunk metadata
+"""添加 chunk 元数据
 
 Revision ID: 89cb75f20cdc
 Revises: f1ddce8e4fc2

@@ -1,4 +1,4 @@
-"""init tables
+"""初始化数据表
 
 Revision ID: f1ddce8e4fc2
 Revises: 

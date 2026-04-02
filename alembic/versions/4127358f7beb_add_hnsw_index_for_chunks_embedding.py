@@ -1,4 +1,4 @@
-"""add hnsw index for chunks embedding
+"""为 chunks embedding 添加 HNSW 索引
 
 Revision ID: 4127358f7beb
 Revises: 89cb75f20cdc
@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade schema."""
+    """升级数据库架构"""
     op.execute("""
 CREATE INDEX IF NOT EXISTS idx_chunks_embedding_hnsw
 ON chunks
@@ -28,5 +28,5 @@ USING hnsw (embedding vector_cosine_ops);
 
 
 def downgrade() -> None:
-    """Downgrade schema."""
+    """降级数据库架构"""
     op.execute("DROP INDEX IF EXISTS idx_chunks_embedding_hnsw;")
