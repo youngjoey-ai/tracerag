@@ -3,15 +3,19 @@ from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 from langfuse import Langfuse, observe
 
-from app.core.config import LLM_BASE_URL, LLM_MODEL
+from app.core.config import LLM_BASE_URL, LLM_MODEL, DEFAULT_SYSTEM_PROMPT
 
 _cached_system_prompt = None
 
 def get_system_prompt() -> str:
     global _cached_system_prompt
     if _cached_system_prompt is None:
-        langfuse = Langfuse()
-        _cached_system_prompt = langfuse.get_prompt("rag-system-prompt").get_langchain_prompt()[0][1]
+        try:
+            langfuse = Langfuse()
+            prompt_text = langfuse.get_prompt("rag-system-prompt").get_langchain_prompt()[0][1]
+            _cached_system_prompt = prompt_text or DEFAULT_SYSTEM_PROMPT
+        except Exception:
+            _cached_system_prompt = DEFAULT_SYSTEM_PROMPT
     return _cached_system_prompt
 
 client = OpenAI(

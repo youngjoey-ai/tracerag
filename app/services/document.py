@@ -14,33 +14,37 @@ def import_document(db: Session, data: DocumentImportRequest) -> DocumentImportR
         source=data.source,
     )
 
-    db.add(document)
-    db.commit()
-    db.refresh(document)
-
     chunks = split_text(
         data.content,
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP
     )
 
-    chunk_objects = []
-    for index, chunk_text in enumerate(chunks):
-        chunk = Chunk(
-            document_id=document.id,
-            content=chunk_text,
-            chunk_index=index,
-            metadata_json={
-                "document_title": document.title,
-                "source": document.source,
-                "chunk_size": CHUNK_SIZE,
-                "chunk_overlap": CHUNK_OVERLAP,
-            },
-        )
-        chunk_objects.append(chunk)
+    try:
+        db.add(document)
+        db.flush()
 
-    db.add_all(chunk_objects)
-    db.commit()
+        chunk_objects = []
+        for index, chunk_text in enumerate(chunks):
+            chunk = Chunk(
+                document_id=document.id,
+                content=chunk_text,
+                chunk_index=index,
+                metadata_json={
+                    "document_title": document.title,
+                    "source": document.source,
+                    "chunk_size": CHUNK_SIZE,
+                    "chunk_overlap": CHUNK_OVERLAP,
+                },
+            )
+            chunk_objects.append(chunk)
+
+        db.add_all(chunk_objects)
+        db.commit()
+        db.refresh(document)
+    except Exception:
+        db.rollback()
+        raise
 
     metadata = {
         "title_length": len(data.title),
